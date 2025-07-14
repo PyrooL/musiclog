@@ -1,0 +1,30 @@
+Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE files
+.vscode/
+.idea/
+
+# Local data storage
+collection.json
+
+# API keys or secrets
+config/settings.py
+
+# Logs or debug files
+*.log
+
+# Python test cache
+*.pytest_cache/
+
