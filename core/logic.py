@@ -1,12 +1,12 @@
 from db import db
-from core.models import Album, DEFAULT_STATUSES
+from core.models import Album, status_config
 from api import musicbrainz
 
 def is_in_collection(album: Album):
     collection = db.load_collection()
     count = 0 
     for collection_album in collection:
-        if collection_album.mbid == album.mbid:
+        if album.mbid is not None and collection_album.mbid == album.mbid:
             count += 1
             continue
         if album.artist.casefold == collection_album.artist.casefold() and album.title.casefold() == collection_album.title.casefold():
@@ -15,16 +15,15 @@ def is_in_collection(album: Album):
         print(f"WARNING: Detected {count} duplicates!")
     return count
 
-def add_album(artist, title, release_year, status, tags = [], source = 'user', mbid = None):
-    # does it make sense to pass an Album object or do the construction here?
+def add_album(album: Album):
+    # album = Album(artist=artist, title=title, release_year=release_year, status=status, tags = tags, source = source, mbid = mbid)
     collection = db.load_collection()
-    if status not in DEFAULT_STATUSES:
+    if album.status not in status_config['default_statuses']:
         print("WARNING: assigning non-default status")
-    album = Album(artist=artist, title=title, release_year=release_year, status=status, tags = tags, source = source, mbid = mbid)
     if is_in_collection(album) > 0:
         print("Album already in collection!")
     else:
-        print(f"Added album: {artist} - {title} ({str(release_year)}) [{status}]")
+        print(f"Added album: {str(album)}")
         collection.append(album)
         db.save_collection(collection)
 
@@ -35,17 +34,19 @@ def list_albums(status: None | str = None):
         return collection
     return [album for album in collection if album.status == status]
 
-def search_album(search_string: str, limit: int = 5):
+def search_album(search_string: str, limit: int = 10):
     search_result = musicbrainz.search_album(search_string, limit=limit)
     result_parsed = [parse_mb_album(r) for r in search_result]
-    # for i in result_parsed: print(i,"\n") 
     return result_parsed
 
 def add_from_mbid(mbid, status = "uncategorized"):
     mb_album = musicbrainz.get_from_mbid(mbid)
     if mb_album:
         album = parse_mb_album(mb_album)
-        add_album(album.artist, album.title, album.release_year, status, album.tags, source = 'user', mbid = mbid)
+        album.mbid = mbid
+        album.source = 'user'
+        album.status = status
+        add_album(album)
 
 def parse_mb_album(mb_album) -> Album:
     title = mb_album['title']
@@ -74,6 +75,6 @@ def find_broken_albums():
             print("Year")
             album.display() # placeholder
         # etc
-        if album.status == DEFAULT_STATUSES[-1]:
+        if album.status == status_config['default_statuses'][-1]:
             print("Uncategorized")
             album.display() # placeholder
